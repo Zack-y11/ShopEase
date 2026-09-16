@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, Touchable, TouchableOpacity, Image } from "react-native";
-import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Drawer } from '@/components/drawer/Drawer';
-import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, TextInput } from "react-native-gesture-handler";
 import { useAuth } from "@/context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, TextInput } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
     const { user } = useAuth()
@@ -65,8 +65,8 @@ export default function ProfileScreen() {
                             <Ionicons name="person-outline" size={20} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="full name" 
-                                value={user?.name || "Usuario No Identificado"}/>
+                                placeholder="full name"
+                                value={typeof user?.name === "string" ? user.name : "Usuario No Identificado"} />
 
                         </View>
 
@@ -77,8 +77,8 @@ export default function ProfileScreen() {
                             <Ionicons name="mail-outline" size={20} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Your email" 
-                                value={user?.email || "Usuario Sin Correo"}/>
+                                placeholder="Your email"
+                                value={typeof user?.email === 'string' ? user.email : "Usuario Sin Correo"} />
 
                         </View>
 
@@ -90,8 +90,8 @@ export default function ProfileScreen() {
                             <TextInput
                                 keyboardType="phone-pad"
                                 style={styles.input}
-                                placeholder="Your Number" 
-                                value={user?.phone || "Usuario Sin Telefono"} />
+                                placeholder="Your Number"
+                                value={typeof user?.phone === 'string' ? user.phone :  "Usuario Sin Telefono"} />
 
                         </View>
 
@@ -250,5 +250,4 @@ const styles = StyleSheet.create({
     inputIcon: {
 
     }
-
 })
