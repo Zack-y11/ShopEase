@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Dimensions, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const SCREEN_PADDING = 16;
@@ -67,6 +68,7 @@ const MOCK_PRODUCTS: Product[] = [
 const CATEGORIES = ['All Categories', 'Electronics', 'Fashions', "Videogames"]
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { openDrawer } = useDrawerControls();
   const { profile } = useDrawer()
   const [selectedCategory, SetSelectedCategory] = useState("All Categories")
@@ -98,7 +100,8 @@ export default function DashboardScreen() {
         </TouchableOpacity>
         <Text style={styles.logoText}>Shop Ease</Text>
 
-        <TouchableOpacity style={styles.profileContainer}>
+        <TouchableOpacity style={styles.profileContainer}
+        onPress= {() => router.push("/(protected)/profile")}>
           <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
         </TouchableOpacity>
       </View>
@@ -147,7 +150,7 @@ export default function DashboardScreen() {
             <View style={styles.cardContainer}>
 
               <View style={styles.imageWrapper} >
-                <Image source={{uri: item.image}} style={styles.productImage}/>
+                <Image source={{ uri: item.image }} style={styles.productImage} />
                 {item.isNew && (
                   <View style={styles.newBadge}>
                     <Text style={styles.newBadgeText}>NEW</Text>
@@ -161,7 +164,7 @@ export default function DashboardScreen() {
 
                 <View style={styles.priceRow}>
                   <Text>{item.price.toFixed(2)} </Text>
-                  <TouchableOpacity style={styles.cartBtn}>  
+                  <TouchableOpacity style={styles.cartBtn}>
                     <Ionicons name='cart-outline' size={16} color="#FFF" />
                   </TouchableOpacity>
 
@@ -270,12 +273,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius:5,
+    shadowRadius: 5,
     elevation: 2
   },
-  imageWrapper :{
+  imageWrapper: {
     height: 140,
     width: "100%",
     backgroundColor: "#F3F4F6",
@@ -286,7 +289,7 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "cover"
   },
-  newBadge : {
+  newBadge: {
     position: 'absolute',
     top: 10,
     left: 10,
@@ -301,27 +304,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
 
   },
-  productInfo : {
+  productInfo: {
     padding: 12,
 
   },
-  productTitle : {
+  productTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     color: "#1f2937",
     marginBottom: 2,
   },
-  productDescription : {
+  productDescription: {
     fontSize: 11,
     color: "#6B7280",
     marginBottom: 8
   },
-  priceRow : {
+  priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  cartBtn : {
+  cartBtn: {
     backgroundColor: "#00B074",
     width: 30,
     height: 30,
