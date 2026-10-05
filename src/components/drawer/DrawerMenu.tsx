@@ -1,10 +1,12 @@
 import { Feather } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useDrawer } from '@/admin/viewmodels/use-drawer';
 
 export function DrawerMenu() {
   const { profile, navigationOptions, handleNavigate, handleLogout, isActiveRoute } = useDrawer();
+  const [isInventoryExpanded, setIsInventoryExpanded] = useState(false);
 
   return (
     <View style={styles.drawerContainer}>
@@ -24,21 +26,92 @@ export function DrawerMenu() {
 
       <View style={styles.menuList}>
         {navigationOptions.map((option) => {
-          const isSelected = isActiveRoute(option.name);
+          const hasChildren = Boolean(option.subItems?.length);
+          const isChildActive = option.subItems?.some((subItem) => isActiveRoute(subItem.name)) ?? false;
+          const isSelected = isActiveRoute(option.name) || isChildActive;
 
           return (
-            <TouchableOpacity
-              key={option.name}
-              style={[styles.menuItemList, isSelected && styles.menuItemSelected]}
-              onPress={() => handleNavigate(option.name)}>
-              <Feather
-                name={option.icon as keyof typeof Feather.glyphMap}
-                size={20}
-                color={isSelected ? '#FFF' : '#374151'}
-                style={styles.menuIcon}
-              />
-              <Text style={[styles.menuText, isSelected && styles.menuTextSelected]}>{option.label}</Text>
-            </TouchableOpacity>
+            <View key={option.name}>
+              {hasChildren ? (
+                <View style={[styles.menuItemList, isSelected && styles.menuItemSelected]}>
+                  <TouchableOpacity
+                    style={styles.menuItemContent}
+                    onPress={() => handleNavigate(option.name)}
+                  >
+                    <Feather
+                      name={option.icon as keyof typeof Feather.glyphMap}
+                      size={20}
+                      color={isSelected ? '#FFF' : '#374151'}
+                      style={styles.menuIcon}
+                    />
+                    <Text style={[styles.menuText, isSelected && styles.menuTextSelected]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`${option.label} ${isInventoryExpanded ? 'collapse' : 'expand'}`}
+                    style={styles.expandButton}
+                    onPress={() => setIsInventoryExpanded((expanded) => !expanded)}
+                  >
+                    <Feather
+                      name={isInventoryExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color={isSelected ? '#FFF' : '#374151'}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.menuItemList, isSelected && styles.menuItemSelected]}
+                  onPress={() => handleNavigate(option.name)}
+                >
+                  <Feather
+                    name={option.icon as keyof typeof Feather.glyphMap}
+                    size={20}
+                    color={isSelected ? '#FFF' : '#374151'}
+                    style={styles.menuIcon}
+                  />
+                  <Text style={[styles.menuText, isSelected && styles.menuTextSelected]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {hasChildren && isInventoryExpanded && (
+                <View style={styles.subMenuList}>
+                  {option.subItems?.map((subItem) => {
+                    const isSubItemSelected = isActiveRoute(subItem.name);
+
+                    return (
+                      <TouchableOpacity
+                        key={subItem.name}
+                        style={[
+                          styles.subMenuItem,
+                          isSubItemSelected && styles.subMenuItemSelected,
+                        ]}
+                        onPress={() => handleNavigate(subItem.name)}
+                      >
+                        <Feather
+                          name={subItem.icon as keyof typeof Feather.glyphMap}
+                          size={18}
+                          color={isSubItemSelected ? '#006C47' : '#6B7280'}
+                          style={styles.subMenuIcon}
+                        />
+                        <Text
+                          style={[
+                            styles.subMenuText,
+                            isSubItemSelected && styles.subMenuTextSelected,
+                          ]}
+                        >
+                          {subItem.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
           );
         })}
       </View>
@@ -109,6 +182,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#00B074',
     borderRadius: 8,
   },
+  menuItemContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  expandButton: {
+    padding: 4,
+  },
   menuIcon: {
     marginRight: 15,
   },
@@ -119,6 +200,32 @@ const styles = StyleSheet.create({
   },
   menuTextSelected: {
     color: '#FFF',
+  },
+  subMenuList: {
+    marginLeft: 24,
+    marginBottom: 4,
+  },
+  subMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  subMenuItemSelected: {
+    backgroundColor: '#E6F7F1',
+  },
+  subMenuIcon: {
+    marginRight: 12,
+  },
+  subMenuText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  subMenuTextSelected: {
+    color: '#006C47',
   },
   logoutButton: {
     flexDirection: 'row',
