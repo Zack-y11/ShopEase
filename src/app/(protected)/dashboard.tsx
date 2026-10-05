@@ -65,7 +65,7 @@ const MOCK_PRODUCTS: Product[] = [
     category: "VideoGames",
   }
 ];
-const CATEGORIES = ['All Categories', 'Electronics', 'Fashions', "Videogames"]
+const CATEGORIES = ['All Categories', 'Electronics', 'Fashions', 'VideoGames']
 
 export default function DashboardScreen() {
   const router = useRouter();
