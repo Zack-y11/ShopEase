@@ -2,6 +2,7 @@ export interface DrawerItemOption {
     name: string; // nombre de la ruta 
     label: string;
     icon: string;
+    subItems?: DrawerItemOption[];
 }
 
 export interface AdminProfile {
