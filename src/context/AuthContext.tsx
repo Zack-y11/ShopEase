@@ -1,14 +1,14 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-type UserResponse = Record<string, unknown>;
+import { UserResponse } from "@/auth/models/auth.model";
 
 interface AuthContextType {
     token: string | null;
     user: UserResponse | null;
     isLoadingSession: boolean;
     saveSession: (token: string, user: UserResponse) => Promise<void>;
-    clearSession: () => void
+    clearSession: () => Promise<void>;
 
 }
 

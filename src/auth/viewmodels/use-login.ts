@@ -27,7 +27,7 @@ export function useLogin() {
 
         try {
             const data = await AuthService.login(email.trim(), password);
-            await saveSession(data.token, data.userResponse as unknown as Parameters<typeof saveSession>[1]);
+            await saveSession(data.token, data.userResponse);
         } catch (error: unknown) {
             setErrorMessage(error instanceof Error ? error.message : "An error occurred while logging in.");
         } finally {
