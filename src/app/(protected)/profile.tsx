@@ -1,3 +1,4 @@
+import { useDrawer } from "@/admin/viewmodels/use-drawer";
 import { Drawer } from '@/components/drawer/Drawer';
 import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,14 +8,25 @@ import { ScrollView, TextInput } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
-    const { user } = useAuth()
+    const { user } = useAuth();
+    const { profile } = useDrawer();
     const router = useRouter();
+
+    const goBack = (): void => {
+        if (router.canGoBack()) {
+            router.back();
+            return;
+        }
+
+        router.replace('/(protected)/dashboard');
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <Drawer.Screen options={{ headerShown: false }} />
             <View style={styles.header}>
                 <TouchableOpacity
-                    onPress={() => router.back()}
+                    onPress={goBack}
                 >
                     <Ionicons name="arrow-back-outline" size={26} />
                 </TouchableOpacity>
@@ -29,7 +41,7 @@ export default function ProfileScreen() {
                     <View style={styles.imageWrapper}>
                         <Image
                             style={styles.profileAvatar}
-                            source={{ uri: "https://res.cloudinary.com/dkeu1rgrm/image/upload/v1776814225/coeSRn2R_rejkq7.jpg" }}
+                            source={{ uri: profile.avatarUrl }}
                         />
                         <TouchableOpacity style={styles.cameraBtn}>
                             <Ionicons name='camera' size={16} color="#fff" />
@@ -37,10 +49,10 @@ export default function ProfileScreen() {
 
                     </View>
                     <Text style={styles.profileName}>
-                        Isaac Natanael Medrano Romero
+                        {profile.name}
                     </Text>
                     <Text style={styles.profileSubtitle}>
-                        Backend Developer
+                        {profile.role}
                     </Text>
 
                     {/*CARD POINTS */}
@@ -95,7 +107,7 @@ export default function ProfileScreen() {
 
                         </View>
 
-                    </View>P
+                    </View>
                 </View>
 
             </ScrollView>
