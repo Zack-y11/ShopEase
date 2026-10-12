@@ -1,6 +1,12 @@
+import { CategoryService } from '@/categories/services/category.service';
+import { Drawer } from '@/components/drawer/Drawer';
+import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,10 +18,50 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Drawer } from '@/components/drawer/Drawer';
-
 export default function CategoryScreen() {
   const router = useRouter();
+  const { token } = useAuth()
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("")
+  const [isLoad, setIsLoad] = useState(false)
+
+  const handleSaveCategory = async () => {
+    if (!name.trim()) {
+      Alert.alert("Campo Requerido, Ingrese el nombre de la categoria")
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert("Campo Requerido, ingrese la descripcion de la categoria")
+      return
+    }
+    if (!token) {
+      Alert.alert("Error de sesion, no se encontro el token")
+      return;
+    }
+
+    setIsLoad(true)
+    try {
+      const newCategory = await CategoryService.createCategory(name, description, token)
+      Alert.alert("Categoria creada", "La categoria " + newCategory.name + " se ha creado correctamente",
+        [
+          {
+            text: "Aceptar",
+            onPress: () => {
+              setName("")
+              setDescription("")
+              router.replace('/(protected)/inventory')
+            }
+          }
+        ]
+      )
+    } catch (error) {
+      Alert.alert("Error al guardar la categoria, intente nuevamente", error instanceof Error ? error.message : "Error desconocido")
+    } finally {
+      setIsLoad(false)
+    }
+
+  }
+
 
 
   return (
@@ -50,7 +96,7 @@ export default function CategoryScreen() {
           <View style={styles.formCard}>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Nombre de la categoría</Text>
-              <TextInput style={styles.textInput} placeholder="Dulcería" />
+              <TextInput style={styles.textInput} placeholder="Dulcería" value={name} onChangeText={setName} editable={!isLoad} />
             </View>
 
             <View style={styles.inputGroup}>
@@ -61,17 +107,27 @@ export default function CategoryScreen() {
                 multiline
                 numberOfLines={5}
                 textAlignVertical="top"
+                value={description}
+                onChangeText={setDescription}
+                editable={!isLoad}
               />
             </View>
 
-            <TouchableOpacity style={styles.btnSave}>
-              <Ionicons
-                name="checkmark"
-                size={22}
-                color="#FFFFFF"
-                style={styles.checkIcon}
-              />
-              <Text style={styles.btnSaveText}>Guardar categoría</Text>
+            <TouchableOpacity style={styles.btnSave} onPress={handleSaveCategory} disabled={isLoad}>
+              {isLoad ? (<ActivityIndicator size="small" color="#FFFFFF" />) :
+                (
+                  <>
+                    <Ionicons
+                      name="checkmark"
+                      size={22}
+                      color="#FFFFFF"
+                      style={styles.checkIcon}
+                    />
+                    <Text style={styles.btnSaveText}>Guardar categoría</Text>
+                  </>
+                )
+              }
+
             </TouchableOpacity>
 
             <TouchableOpacity
