@@ -23,6 +23,14 @@ interface Product {
   isNew?: boolean
   category: string
 }
+const DEFAULT_CATEGORIES = [
+  "All categories",
+  "Calzado Urbano",
+  "Ropa urbana",
+  "Comida",
+  "Electronics",
+  "VideoGames",
+];
 const MOCK_PRODUCTS: Product[] = [
   {
     id: "1",
@@ -39,7 +47,7 @@ const MOCK_PRODUCTS: Product[] = [
     description: "Genuine Leather Strap",
     price: 145.00,
     image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600&auto=format&fit=crop",
-    category: "Fashions",
+    category: "Ropa urbana",
   },
   {
     id: "3",
@@ -47,7 +55,7 @@ const MOCK_PRODUCTS: Product[] = [
     description: "Peak Performance Gear",
     price: 89.99,
     image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop",
-    category: "Fashions",
+    category: "Calzado Urbano",
   },
   {
     id: "4",
@@ -65,17 +73,41 @@ const MOCK_PRODUCTS: Product[] = [
     image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600&auto=format&fit=crop",
     isNew: true,
     category: "VideoGames",
+  },
+  {
+    id: "6",
+    title: "Sneaker Urbano Casual",
+    description: "Zapatos urbanos para uso diario",
+    price: 74.99,
+    image: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=600&auto=format&fit=crop",
+    isNew: true,
+    category: "Calzado Urbano",
+  },
+  {
+    id: "7",
+    title: "Camisa Oversize Street",
+    description: "Estilo urbano 100% algodón",
+    price: 35.00,
+    image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=600&auto=format&fit=crop",
+    category: "Ropa urbana",
+  },
+  {
+    id: "8",
+    title: "Combo Snack & Burger",
+    description: "Comida rápida y aperitivos",
+    price: 14.50,
+    image: "https://images.unsplash.com/photo-1561758033-d89a9ad46330?q=80&w=600&auto=format&fit=crop",
+    category: "Comida",
   }
 ];
-//const CATEGORIES = ['All Categories', 'Electronics', 'Fashions', 'VideoGames']
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { token } = useAuth()
   const { openDrawer } = useDrawerControls();
   const { profile } = useDrawer()
-  const [selectedCategory, SetSelectedCategory] = useState("All Categories")
-  const [categories, setCategories] = useState<string[]>(['All Categories'])
+  const [selectedCategory, SetSelectedCategory] = useState(DEFAULT_CATEGORIES[0])
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [isLoadingCategories, setIsLoadingCategories] = useState(false)
 
   useEffect(() => {
@@ -84,8 +116,8 @@ export default function DashboardScreen() {
       setIsLoadingCategories(true)
       try {
         const data = await CategoryService.getCategories(token)
-        const categoryNames = Array.from(new Set(data.map(c => c.name)))
-        setCategories(['All Categories', ...categoryNames])
+        const categoryNames = data.map((category) => category.name).filter(Boolean)
+        setCategories(Array.from(new Set(["All categories", ...categoryNames, ...DEFAULT_CATEGORIES])))
       } catch (error) {
         console.error("Error fetching categories:", error instanceof Error ? error.message : "Unknown error")
       } finally {
@@ -101,9 +133,8 @@ export default function DashboardScreen() {
   const filteredProductsByCategory = useMemo(() => {
     return MOCK_PRODUCTS.filter((product) => {
       const matchCategory =
-        !selectedCategory
-        || selectedCategory === "All Categories"
-        || product.category === selectedCategory
+        selectedCategory === "All categories"
+        || product.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase()
 
       const matchSearch =
         product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -142,12 +173,12 @@ export default function DashboardScreen() {
       {/* CATEGORIES */}
       <View style={styles.categoryWrapper} >
         {isLoadingCategories ?
-          (<ActivityIndicator color="005c3a" size="small" />) :
+          (<ActivityIndicator color="#005C3A" size="small" />) :
           (
             <FlatList
               contentContainerStyle={styles.categoriesList}
               horizontal
-              showsHorizontalScrollIndicator
+              showsHorizontalScrollIndicator={false}
               data={categories}
               keyExtractor={(item) => item}
               renderItem={({ item }) => {
@@ -175,6 +206,15 @@ export default function DashboardScreen() {
           keyExtractor={(item) => item.id}
           numColumns={2}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="bag-handle-outline" size={54} color="#9CA3AF" />
+              <Text style={styles.emptyTitle}>No hay productos</Text>
+              <Text style={styles.emptySubtitle}>
+                No se encontraron productos en la categoría "{selectedCategory}".
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <View style={styles.cardContainer}>
 
@@ -360,5 +400,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: "center",
     borderRadius: 15
-  }
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#374151",
+    marginTop: 12,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 4,
+    textAlign: "center",
+  },
 });
