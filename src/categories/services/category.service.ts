@@ -13,7 +13,7 @@ export const CategoryService = {
 
     getCategories: async (token: string): Promise<CategoryResponse[]> => {
         try {
-            const authTokenHeader = token.startsWith("Bearer") ? token : `Bearer ${token}`
+            const authTokenHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`
             const response = await axios.get(
                 `${API_URL}/categories`,
                 {
@@ -25,7 +25,17 @@ export const CategoryService = {
             return response.data
         } catch (error: any) {
             if (axios.isAxiosError(error) && error.response) {
-                throw new Error(error.response.data?.message || "Error when fetching categories")
+                const responseData: unknown = error.response.data;
+                console.error("Category API response failure:", {
+                    status: error.response.status,
+                    bodyType: Array.isArray(responseData) ? "array" : typeof responseData,
+                    bodyKeys:
+                        typeof responseData === "object" && responseData !== null
+                            ? Object.keys(responseData)
+                            : [],
+                });
+
+                throw new Error(error.response.data?.message || error.response.data?.Message || "Error when fetching categories")
             }
             throw new Error("Server error")
         }
@@ -37,7 +47,7 @@ export const CategoryService = {
         token: string
     ): Promise<CategoryResponse> => {
         try {
-            const authTokenHeader = token.startsWith("Bearer") ? token : `Bearer ${token}`
+            const authTokenHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`
             const response = await axios.post(
                 `${API_URL}/categories/create`, { name, description },
                 {
@@ -51,7 +61,7 @@ export const CategoryService = {
 
         } catch (error) {
             if (axios.isAxiosError(error) && error.response) {
-                throw new Error(error.response.data?.message || "Error when creating category")
+                throw new Error(error.response.data?.message || error.response.data?.Message || "Error when creating category")
             }
             throw new Error("Server error")
         }
