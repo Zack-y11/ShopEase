@@ -87,6 +87,7 @@ export default function CategoryScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.logoText}>
             Ingresa los datos esenciales para catalogar los productos en el
