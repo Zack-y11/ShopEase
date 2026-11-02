@@ -1,7 +1,7 @@
 import axios from "axios";
 
 import { API_URL } from "../../../api/ApiClient";
-import { CreateProductRequest, ProductResponse } from "../models/product.model";
+import { CreateProductRequest, ProductItem, ProductResponse } from "../models/product.model";
 
 function messageFromBody(data: unknown, fallback: string): string {
     if (typeof data === "object" && data !== null) {
@@ -37,6 +37,29 @@ export const ProductService = {
         } catch (error) {
             if (axios.isAxiosError(error) && error.response) {
                 throw new Error(messageFromBody(error.response.data, "Error to create product"));
+            }
+            throw new Error("Server error");
+        }
+    },
+
+    getProductsByCategoryId: async (
+        categoryId: number,
+        token: string
+    ): Promise<ProductItem[]> => {
+        try {
+            const authTokenHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+            const response = await axios.get<ProductItem[]>(
+                `${API_URL}/products/category/${categoryId}`,
+                {
+                    headers: {
+                        Authorization: authTokenHeader,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response) {
+                throw new Error(messageFromBody(error.response.data, "Error to get products"));
             }
             throw new Error("Server error");
         }

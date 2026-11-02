@@ -1,148 +1,138 @@
 import { useDrawer } from '@/admin/viewmodels/use-drawer';
+import { CategoryResponse, CategoryService } from '@/categories/services/category.service';
 import { Drawer } from '@/components/drawer/Drawer';
 import { useDrawerControls } from '@/components/drawer/DrawerContext';
+import { useAuth } from '@/context/AuthContext';
+import { ProductItem } from '@/products/models/product.model';
+import { ProductService } from '@/products/services/product.service';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { CategoryService } from '@/categories/services/category.service';
 
 const { width } = Dimensions.get('window');
 const SCREEN_PADDING = 16;
 const GRID_GAP = 12;
 const CARD_WIDTH = (width - SCREEN_PADDING * 2 - GRID_GAP) / 2;
-
-interface Product {
-  id: string
-  title: string
-  description: string
-  price: number
-  image: string
-  isNew?: boolean
-  category: string
-}
-const DEFAULT_CATEGORIES = [
-  "All categories",
-  "Calzado Urbano",
-  "Ropa urbana",
-  "Comida",
-  "Electronics",
-  "VideoGames",
-];
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    title: "Premium Audio",
-    description: "Wireless Noise Cancelling",
-    price: 299.00,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop",
-    isNew: true,
-    category: "Electronics",
-  },
-  {
-    id: "2",
-    title: "Eon Classic Wrist",
-    description: "Genuine Leather Strap",
-    price: 145.00,
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600&auto=format&fit=crop",
-    category: "Ropa urbana",
-  },
-  {
-    id: "3",
-    title: "Velocity Running",
-    description: "Peak Performance Gear",
-    price: 89.99,
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop",
-    category: "Calzado Urbano",
-  },
-  {
-    id: "4",
-    title: "Insta-Capture",
-    description: "Vintage Aesthetics",
-    price: 120.00,
-    image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop",
-    category: "Electronics",
-  },
-  {
-    id: "5",
-    title: "Console Controller",
-    description: "Built for Next-Gen Gaming",
-    price: 69.99,
-    image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600&auto=format&fit=crop",
-    isNew: true,
-    category: "VideoGames",
-  },
-  {
-    id: "6",
-    title: "Sneaker Urbano Casual",
-    description: "Zapatos urbanos para uso diario",
-    price: 74.99,
-    image: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=600&auto=format&fit=crop",
-    isNew: true,
-    category: "Calzado Urbano",
-  },
-  {
-    id: "7",
-    title: "Camisa Oversize Street",
-    description: "Estilo urbano 100% algodón",
-    price: 35.00,
-    image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=600&auto=format&fit=crop",
-    category: "Ropa urbana",
-  },
-  {
-    id: "8",
-    title: "Combo Snack & Burger",
-    description: "Comida rápida y aperitivos",
-    price: 14.50,
-    image: "https://images.unsplash.com/photo-1561758033-d89a9ad46330?q=80&w=600&auto=format&fit=crop",
-    category: "Comida",
-  }
-];
+const PRODUCT_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop";
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { token } = useAuth()
+  const { token } = useAuth();
   const { openDrawer } = useDrawerControls();
-  const { profile } = useDrawer()
-  const [selectedCategory, SetSelectedCategory] = useState(DEFAULT_CATEGORIES[0])
-  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
+  const { profile } = useDrawer();
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [productError, setProductError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      if (!token) return;
-      setIsLoadingCategories(true)
-      try {
-        const data = await CategoryService.getCategories(token)
-        const categoryNames = data.map((category) => category.name).filter(Boolean)
-        setCategories(Array.from(new Set(["All categories", ...categoryNames, ...DEFAULT_CATEGORIES])))
-      } catch (error) {
-        console.error("Error fetching categories:", error instanceof Error ? error.message : "Unknown error")
-      } finally {
-        setIsLoadingCategories(false)
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) {
+        setCategories([]);
+        setCategoryError(null);
+        setIsLoadingCategories(false);
+        return;
       }
-    }
-    fetchCategories()
-  }, [token])
 
-  const [searchQuery, setSearchQuery] = useState("")
+      let active = true;
+      setIsLoadingCategories(true);
+      setCategoryError(null);
 
-  //filtrar dinamicamente los productos segun la categoria
-  const filteredProductsByCategory = useMemo(() => {
-    return MOCK_PRODUCTS.filter((product) => {
-      const matchCategory =
-        selectedCategory === "All categories"
-        || product.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase()
+      CategoryService.getCategories(token)
+        .then((data) => {
+          if (!active) {
+            return;
+          }
+          setCategories(data);
+        })
+        .catch((error: unknown) => {
+          if (!active) {
+            return;
+          }
+          setCategories([]);
+          setCategoryError(
+            error instanceof Error && error.message
+              ? error.message
+              : "Error al cargar las categorías"
+          );
+        })
+        .finally(() => {
+          if (!active) {
+            return;
+          }
+          setIsLoadingCategories(false);
+        });
 
-      const matchSearch =
-        product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+      return () => {
+        active = false;
+      };
+    }, [token])
+  );
 
-      return matchCategory && matchSearch
-    })
-  }, [selectedCategory, searchQuery])
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) {
+        setProducts([]);
+        setProductError(null);
+        setIsLoadingProducts(false);
+        return;
+      }
+
+      let active = true;
+      const categoryId = selectedCategoryId ?? 1;
+      setProducts([]);
+      setProductError(null);
+      setIsLoadingProducts(true);
+
+      ProductService.getProductsByCategoryId(categoryId, token)
+        .then((data) => {
+          if (!active) {
+            return;
+          }
+          setProducts(data);
+        })
+        .catch((error: unknown) => {
+          if (!active) {
+            return;
+          }
+          setProducts([]);
+          setProductError(
+            error instanceof Error && error.message
+              ? error.message
+              : "Error al cargar los productos"
+          );
+        })
+        .finally(() => {
+          if (!active) {
+            return;
+          }
+          setIsLoadingProducts(false);
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [token, selectedCategoryId])
+  );
+
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    return products.filter((product) => {
+      if (!query) {
+        return true;
+      }
+      return (
+        product.name.toLowerCase().includes(query) ||
+        (product.description ? product.description.toLowerCase().includes(query) : false)
+      );
+    });
+  }, [products, searchQuery]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -172,77 +162,83 @@ export default function DashboardScreen() {
       </View>
       {/* CATEGORIES */}
       <View style={styles.categoryWrapper} >
-        {isLoadingCategories ?
-          (<ActivityIndicator color="#005C3A" size="small" />) :
-          (
-            <FlatList
-              contentContainerStyle={styles.categoriesList}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={categories}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => {
-                const isSelected = item === selectedCategory
-                return (
-                  <TouchableOpacity
-                    onPress={() => SetSelectedCategory(item)}
-                    style={[styles.categoryItem, isSelected && styles.categoryItemSelected]}>
-                    <Text style={[styles.categoryText, isSelected && styles.categoryTextSelected]} >{item}</Text>
-                  </TouchableOpacity>
-                ) 
-              }}
-            />
-          )
-        }
+        {isLoadingCategories ? (
+          <ActivityIndicator color="#005C3A" size="small" />
+        ) : categoryError ? (
+          <Text style={styles.categoryStatusText}>{categoryError}</Text>
+        ) : categories.length === 0 ? (
+          <Text style={styles.categoryStatusText}>No hay categorías disponibles</Text>
+        ) : (
+          <FlatList
+            contentContainerStyle={styles.categoriesList}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={categories}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={({ item }) => {
+              const isSelected = selectedCategoryId === item.id;
+              return (
+                <TouchableOpacity
+                  onPress={() => setSelectedCategoryId(item.id)}
+                  style={[styles.categoryItem, isSelected && styles.categoryItemSelected]}>
+                  <Text style={[styles.categoryText, isSelected && styles.categoryTextSelected]} >{item.name}</Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )}
 
       </View>
 
       {/* PRODUCT CARDS*/}
       <View style={styles.productListWrapper}>
-        <FlatList
-          contentContainerStyle={styles.productList}
-          columnWrapperStyle={styles.gridRowSpace}
-          data={filteredProductsByCategory}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="bag-handle-outline" size={54} color="#9CA3AF" />
-              <Text style={styles.emptyTitle}>No hay productos</Text>
-              <Text style={styles.emptySubtitle}>
-                No se encontraron productos en la categoría "{selectedCategory}".
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.cardContainer}>
-
-              <View style={styles.imageWrapper} >
-                <Image source={{ uri: item.image }} style={styles.productImage} />
-                {item.isNew && (
-                  <View style={styles.newBadge}>
-                    <Text style={styles.newBadgeText}>NEW</Text>
-                  </View>
-                )}
+        {isLoadingProducts ? (
+          <ActivityIndicator color="#005C3A" size="large" style={styles.productSpinner} />
+        ) : productError ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>{productError}</Text>
+          </View>
+        ) : (
+          <FlatList
+            contentContainerStyle={styles.productList}
+            columnWrapperStyle={filteredProducts.length > 0 ? styles.gridRowSpace : undefined}
+            data={filteredProducts}
+            keyExtractor={(item) => String(item.id)}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="bag-handle-outline" size={54} color="#9CA3AF" />
+                <Text style={styles.emptyTitle}>No hay productos</Text>
+                <Text style={styles.emptySubtitle}>
+                  No se encontraron productos en la categoría seleccionada.
+                </Text>
               </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.cardContainer}>
 
-              <View style={styles.productInfo}>
-                <Text style={styles.productTitle}>{item.title}</Text>
-                <Text style={styles.productDescription} >{item.description} </Text>
-
-                <View style={styles.priceRow}>
-                  <Text>{item.price.toFixed(2)} </Text>
-                  <TouchableOpacity style={styles.cartBtn}>
-                    <Ionicons name='cart-outline' size={16} color="#FFF" />
-                  </TouchableOpacity>
-
+                <View style={styles.imageWrapper} >
+                  <Image source={{ uri: item.imageUrl || PRODUCT_IMAGE_FALLBACK }} style={styles.productImage} />
                 </View>
 
+                <View style={styles.productInfo}>
+                  <Text style={styles.productTitle}>{item.name}</Text>
+                  <Text style={styles.productDescription} >{item.description} </Text>
+
+                  <View style={styles.priceRow}>
+                    <Text>{Number(item.regularPrice).toFixed(2)} </Text>
+                    <TouchableOpacity style={styles.cartBtn}>
+                      <Ionicons name='cart-outline' size={16} color="#FFF" />
+                    </TouchableOpacity>
+
+                  </View>
+
+                </View>
               </View>
-            </View>
-          )}
-        />
+            )}
+          />
+        )}
 
       </View>
     </SafeAreaView>
@@ -304,6 +300,11 @@ const styles = StyleSheet.create({
     maxHeight: 50,
     marginBottom: 16
   },
+  categoryStatusText: {
+    fontSize: 13,
+    color: "#6B7280",
+    paddingVertical: 8,
+  },
   categoriesList: {
     alignItems: "center",
   },
@@ -328,6 +329,9 @@ const styles = StyleSheet.create({
   /* ESTILOS PARA LAS TARJETAS*/
   productListWrapper: {
     flex: 1,
+  },
+  productSpinner: {
+    marginTop: 40,
   },
   productList: {
     paddingBottom: 24,
@@ -357,21 +361,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "cover"
-  },
-  newBadge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: "#005c3a",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6
-  },
-  newBadgeText: {
-    color: "#FFF",
-    fontSize: 10,
-    fontWeight: 'bold',
-
   },
   productInfo: {
     padding: 12,
