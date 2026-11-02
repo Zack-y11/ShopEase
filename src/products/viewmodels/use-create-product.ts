@@ -2,8 +2,8 @@ import { CategoryResponse, CategoryService } from "@/categories/services/categor
 import { useAuth } from "@/context/AuthContext";
 import { CreateProductRequest } from "@/products/models/product.model";
 import { ProductService } from "@/products/services/product.service";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 
 export function useCreateProduct() {
@@ -28,43 +28,45 @@ export function useCreateProduct() {
     const selectedCategoryName =
         categories.find((category) => category.id === categoryId)?.name || "";
 
-    useEffect(() => {
-        if (!token) {
-            return;
-        }
+    useFocusEffect(
+        useCallback(() => {
+            if (!token) {
+                return;
+            }
 
-        let active = true;
-        setIsLoadingCategories(true);
-        setCategoryError(null);
+            let active = true;
+            setIsLoadingCategories(true);
+            setCategoryError(null);
 
-        CategoryService.getCategories(token)
-            .then((data) => {
-                if (!active) {
-                    return;
-                }
-                setCategories(data);
-            })
-            .catch((error: unknown) => {
-                if (!active) {
-                    return;
-                }
-                setCategoryError(
-                    error instanceof Error && error.message
-                        ? error.message
-                        : "Error al cargar las categorías"
-                );
-            })
-            .finally(() => {
-                if (!active) {
-                    return;
-                }
-                setIsLoadingCategories(false);
-            });
+            CategoryService.getCategories(token)
+                .then((data) => {
+                    if (!active) {
+                        return;
+                    }
+                    setCategories(data);
+                })
+                .catch((error: unknown) => {
+                    if (!active) {
+                        return;
+                    }
+                    setCategoryError(
+                        error instanceof Error && error.message
+                            ? error.message
+                            : "Error al cargar las categorías"
+                    );
+                })
+                .finally(() => {
+                    if (!active) {
+                        return;
+                    }
+                    setIsLoadingCategories(false);
+                });
 
-        return () => {
-            active = false;
-        };
-    }, [token]);
+            return () => {
+                active = false;
+            };
+        }, [token]),
+    );
 
     const submitProduct = async () => {
         if (!name.trim() || !sku.trim() || !regularPrice.trim() || !initialStock.trim()) {
