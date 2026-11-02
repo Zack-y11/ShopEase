@@ -1,16 +1,60 @@
 import { useDrawer } from "@/admin/viewmodels/use-drawer";
+import { AuthService } from "@/auth/service/auth.service";
 import { Drawer } from '@/components/drawer/Drawer';
 import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView, TextInput } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
-    const { user } = useAuth();
+    const { user, token, updateUserSession } = useAuth();
     const { profile } = useDrawer();
     const router = useRouter();
+    const [name, setName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    useEffect(() => {
+        setName(user?.name ?? "");
+        setLastName(user?.lastName ?? "");
+        setPhone(user?.phone ?? "");
+    }, [user]);
+
+    const handleUpdateUser = async (): Promise<void> => {
+        if (!name.trim() || !lastName.trim() || !phone.trim()) {
+            Alert.alert("Campos Incompletos.", "Por favor llenar los campos");
+            return;
+        }
+
+        if (!user?.id || !token) {
+            Alert.alert("Error de sesion", "No se encontro el usuario");
+            return;
+        }
+
+        setIsUpdating(true);
+        try {
+            const updatedUser = await AuthService.updateUser(
+                user.id,
+                name.trim(),
+                lastName.trim(),
+                phone.trim(),
+                token,
+            );
+            await updateUserSession(updatedUser);
+            Alert.alert("Excelente", "Tu informacion ha sido actualizada con exito en el servidor");
+        } catch (error: unknown) {
+            Alert.alert(
+                "Error de registro",
+                error instanceof Error && error.message ? error.message : "No se pudo actualizar",
+            );
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     const goBack = (): void => {
         if (router.canGoBack()) {
@@ -36,6 +80,7 @@ export default function ProfileScreen() {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.profileCard}>
                     <View style={styles.imageWrapper}>
@@ -72,13 +117,31 @@ export default function ProfileScreen() {
                 <View style={styles.sectionCard}>
                     <Text style={styles.personalHeader}>Personal Information</Text>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Full Name</Text>
+                        <Text style={styles.inputLabel}>Name</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="person-outline" size={20} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="full name"
-                                value={typeof user?.name === "string" ? user.name : "Usuario No Identificado"} />
+                                value={name}
+                                onChangeText={setName}
+                                editable={!isUpdating}
+                            />
+
+                        </View>
+
+                    </View>
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Last Name</Text>
+                        <View style={styles.inputWrapper}>
+                            <Ionicons name="person-outline" size={20} style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="last name"
+                                value={lastName}
+                                onChangeText={setLastName}
+                                editable={!isUpdating}
+                            />
 
                         </View>
 
@@ -90,7 +153,9 @@ export default function ProfileScreen() {
                             <TextInput
                                 style={styles.input}
                                 placeholder="Your email"
-                                value={typeof user?.email === 'string' ? user.email : "Usuario Sin Correo"} />
+                                value={typeof user?.email === "string" ? user.email : ""}
+                                editable={false}
+                            />
 
                         </View>
 
@@ -103,11 +168,28 @@ export default function ProfileScreen() {
                                 keyboardType="phone-pad"
                                 style={styles.input}
                                 placeholder="Your Number"
-                                value={typeof user?.phone === 'string' ? user.phone :  "Usuario Sin Telefono"} />
+                                value={phone}
+                                onChangeText={setPhone}
+                                editable={!isUpdating}
+                            />
 
                         </View>
 
                     </View>
+                    <TouchableOpacity
+                        style={styles.updateButton}
+                        onPress={handleUpdateUser}
+                        disabled={isUpdating}
+                    >
+                        {isUpdating ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <>
+                                <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+                                <Text style={styles.updateButtonText}>Save Changes</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
             </ScrollView>
@@ -261,5 +343,19 @@ const styles = StyleSheet.create({
     },
     inputIcon: {
 
-    }
+    },
+    updateButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#047857",
+        borderRadius: 12,
+        height: 48,
+    },
+    updateButtonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "bold",
+        marginLeft: 8,
+    },
 })

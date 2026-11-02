@@ -8,6 +8,7 @@ interface AuthContextType {
     user: UserResponse | null;
     isLoadingSession: boolean;
     saveSession: (token: string, user: UserResponse) => Promise<void>;
+    updateUserSession: (updatedUser: UserResponse) => Promise<void>;
     clearSession: () => Promise<void>;
 
 }
@@ -53,6 +54,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         }
     }
+
+    const updateUserSession = async (updatedUser: UserResponse): Promise<void> => {
+        await AsyncStorage.setItem('@auth_user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+    };
+
     //limpia la session
     const clearSession = async () => {
         try {
@@ -66,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ token, user, isLoadingSession: isLoading, saveSession, clearSession }}>
+        <AuthContext.Provider value={{ token, user, isLoadingSession: isLoading, saveSession, updateUserSession, clearSession }}>
             {children}
         </AuthContext.Provider>
     )

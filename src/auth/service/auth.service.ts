@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AuthResponse, RegisterRequest } from "../models/auth.model";
+import { AuthResponse, RegisterRequest, UserResponse } from "../models/auth.model";
 
 const API_URL = "https://api-ecommerce-5aby.onrender.com";
 
@@ -47,6 +47,40 @@ export const AuthService = {
             return response.data;
         } catch (error: unknown) {
             throw new Error(getErrorMessage(error, "An error occurred during registration."));
+        }
+    },
+
+    updateUser: async (
+        userId: number | string,
+        name: string,
+        lastname: string,
+        phone: string,
+        token: string,
+    ): Promise<UserResponse> => {
+        try {
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("lastname", lastname);
+            formData.append("phone", phone);
+
+            const authTokenHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+
+            const response = await axios.put<UserResponse>(
+                `${API_URL}/users/upload/${userId}`,
+                formData,
+                {
+                    headers: {
+                        Authorization: authTokenHeader,
+                        // Axios defaults a PUT without Content-Type to urlencoded.
+                        // false removes that header so the runtime can add the multipart boundary.
+                        "Content-Type": false,
+                    },
+                },
+            );
+
+            return response.data;
+        } catch (error: unknown) {
+            throw new Error(getErrorMessage(error, "Error al actualizar el usuario"));
         }
     },
 };
